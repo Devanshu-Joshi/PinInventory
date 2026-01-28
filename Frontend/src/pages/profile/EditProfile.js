@@ -16,10 +16,11 @@ const EditProfile = () => {
   const { email } = user;
 
   useEffect(() => {
-    if (!email) {
+    if (user === null) return;
+    if (!user?.email) {
       navigate("/profile");
     }
-  }, [email, navigate]);
+  }, [user, navigate]);
 
   const initialState = {
     name: user?.name,
@@ -43,9 +44,11 @@ const EditProfile = () => {
   const saveProfile = async (e) => {
     e.preventDefault();
     setIsLoading(true);
+
     try {
-      // Handle Image upload
-      let imageURL;
+      let imageURL = profile.photo;
+
+      // Upload image only if selected
       if (
         profileImage &&
         (profileImage.type === "image/jpeg" ||
@@ -57,32 +60,32 @@ const EditProfile = () => {
         image.append("cloud_name", "zinotrust");
         image.append("upload_preset", "wk66xdkq");
 
-        // First save image to cloudinary
         const response = await fetch(
           "https://api.cloudinary.com/v1_1/zinotrust/image/upload",
-          { method: "post", body: image }
+          { method: "post", body: image },
         );
+
         const imgData = await response.json();
-        imageURL = imgData.url.toString();
-
-        // Save Profile
-        const formData = {
-          name: profile.name,
-          phone: profile.phone,
-          bio: profile.bio,
-          photo: profileImage ? imageURL : profile.photo,
-        };
-
-        const data = await updateUser(formData);
-        console.log(data);
-        toast.success("User updated");
-        navigate("/profile");
-        setIsLoading(false);
+        imageURL = imgData.url;
       }
+
+      // ALWAYS update profile
+      const formData = {
+        name: profile.name,
+        phone: profile.phone,
+        bio: profile.bio,
+        photo: imageURL,
+      };
+
+      await updateUser(formData);
+
+      toast.success("Profile updated successfully!");
+      navigate("/profile");
     } catch (error) {
       console.log(error);
-      setIsLoading(false);
       toast.error(error.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -135,7 +138,7 @@ const EditProfile = () => {
               <input type="file" name="image" onChange={handleImageChange} />
             </p>
             <div>
-              <button className="--btn --btn-primary">Edit Profile</button>
+              <button className="--btn --btn-primary">Save Profile</button>
             </div>
           </span>
         </form>
